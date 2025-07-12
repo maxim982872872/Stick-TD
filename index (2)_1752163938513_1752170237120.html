@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Stick TD — Битва за выживание</title>
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #0f0f23, #1a1a2e);
+            color: white;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: linear-gradient(180deg, #87CEEB 0%, #98FB98 30%, #32CD32 50%, #228B22 70%, #8B4513 100%);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 16px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(20,20,40,0.8));
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px solid #4CAF50;
+            box-shadow: 0 0 15px rgba(76,175,80,0.3);
+            min-width: 200px;
+        }
+        #ui div {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #ui .stat-value {
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        #ui .stat-label {
+            color: #ddd;
+        }
+        #weapon-info {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.85), rgba(20, 20, 40, 0.85));
+            padding: 12px 15px;
+            border-radius: 15px;
+            border: 2px solid #4CAF50;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+            color: white;
+            min-width: 150px;
+            max-width: 90vw;
+            box-sizing: border-box;
+            z-index: 999;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            #weapon-info {
+                top: 70px;
+                padding: 10px 12px;
+                font-size: 14px;
+                min-width: 120px;
+                max-width: 85vw;
+            }
+
+            #weapon-info div {
+                margin: 3px 0;
+            }
+        }
+        #shopBtn, #settingsBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            margin-left: 10px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(76,175,80,0.4);
+            transition: all 0.3s ease;
+        }
+        #shopBtn {
+            right: 200px;
+        }
+        #settingsBtn {
+            right: 10px;
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+        }
+        #waveBtn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(76,175,80,0.6);
+            transition: all 0.3s ease;
+            display: none;
+            z-index: 100;
+        }
+        #shopBtn:hover, #settingsBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76,175,80,0.6);
+        }
+        #waveBtn:hover {
+            transform: translateX(-50%) translateY(-3px);
+            box-shadow: 0 8px 25px rgba(76,175,80,0.8);
+        }
+        #shop, #settings, #encyclopedia {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,40,0.95));
+            padding: 30px;
+            border-radius: 20px;
+            border: 3px solid #4CAF50;
+            box-shadow: 0 0 30px rgba(76,175,80,0.5);
+            min-width: 450px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        #settings {
+            border-color: #FF9800;
+            box-shadow: 0 0 30px rgba(255,152,0,0.5);
+            min-width: 350px;
+        }
+        #encyclopedia {
+            border-color: #9C27B0;
+            box-shadow: 0 0 30px rgba(156,39,176,0.5);
+            min-width: 600px;
+        }
+        .shop-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+        }
+        .shop-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .shop-tab.active {
+            background: #4CAF50;
+            color: white;
+        }
+        .shop-tab:hover {
+            background: rgba(76,175,80,0.3);
+        }
+        .shop-content {
+            display: none;
+        }
+        .shop-content.active {
+            display: block;
+        }
+        .shop-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+        }
+        .shop-item:hover {
+            background: rgba(76,175,80,0.2);
+            border-color: #4CAF50;
+        }
+        .shop-item h4 {
+            margin: 0 0 10px 0;
+            color: #4CAF50;
+        }
+        .shop-item p {
+            margin: 5px 0;
+            color: #ddd;
+            font-size: 14px;
+        }
+        .shop-item button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        .shop-item button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(76,175,80,0.4);
+        }
+        .shop-item button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .upgrade-level {
+            color: #FFD700;
+            font-weight: bold;
+        }
+        .special-item {
+            border: 2px solid #FFD700;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(218, 165, 32, 0.2));
+        }
+        .legendary-item {
+            border: 2px solid #FF6B6B;
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 63, 63, 0.2));
+        }
+        .boss-warning {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #8B0000, #DC143C);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            z-index: 1002;
+            box-shadow: 0 0 50px rgba(220, 20, 60, 0.8);
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(76,175,80,0.4);
+            animation: slideIn 0.5s ease-out;
+            z-index: 1001;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .close-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            float: right;
+            transition: all 0.3s ease;
+        }
+        .close-btn:hover {
+            background: #d32f2f;
+            transform: scale(1.05);
+        }
+        .wave-info {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 24px;
+            z-index: 999;
+            display: none;
+        }
+        .settings-group {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        .settings-group h3 {
+            margin-top: 0;
+            color: #FF9800;
+        }
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .settings-btn {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .settings-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(255,152,0,0.4);
+        }
+        .settings-btn.danger {
+            background: linear-gradient(135deg, #F44336, #D32F2F);
+        }
+        .slider {
+            width: 100px;
+            height: 5px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .slider:hover {
+            opacity: 1;
+        }
+        .encyclopedia-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+        }
+        .encyclopedia-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .encyclopedia-tab.active {
+            background: #9C27B0;
+            color: white;
+        }
+        .encyclopedia-tab:hover {
+            background: rgba(156,39,176,0.3);
+        }
+        .encyclopedia-content {
+            display: none;
+        }
+        .encyclopedia-content.active {
+            display: block;
+        }
+        .encyclopedia-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        .encyclopedia-item h4 {
+            margin: 0 0 10px 0;
+            color: #9C27B0;
+        }
+        .encyclopedia-item p {
+            margin: 5px 0;
+            color: #ddd;
+            font-size: 14px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+        }
+        .stat-label {
+            color: #bbb;
+        }
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+    <div id="ui">
+        <div><span class="stat-label">💰 Золото:</span> <span class="stat-value" id="gold">0</span></div>
+        <div><span class="stat-label">🏰 База HP:</span> <span class="stat-value" id="baseHP">100</span></div>
+        <div><span class="stat-label">🔼 Уровень базы:</span> <span class="stat-value" id="baseLevel">1</span></div>
+        <div><span class="stat-label">🏹 Стрелы:</span> <span class="stat-value" id="arrows">5</span></div>
+        <div><span class="stat-label">⚔️ Волна:</span> <span class="stat-value" id="waveNum">0</span></div>
+        <div><span class="stat-label">👥 Солдаты:</span> <span class="stat-value" id="soldierCount">0</span></div>
+    </div>
+
+    <div id="weapon-info">
+        <div><span class="stat-label">🏹 Оружие:</span> <span class="stat-value" id="weaponType">Простой лук</span></div>
+        <div><span class="stat-label">💥 Урон:</span> <span class="stat-value" id="weaponDamage">20</span></div>
+        <div><span class="stat-label">⚡ Уровень:</span> <span class="stat-value" id="weaponLevel">1</span></div>
+    </div>
+
+    <button id="shopBtn" onclick="toggleShop()">🛒 Магазин</button>
+    <button id="waveBtn" onclick="startWave()">⚔️ Волна</button>
+    <button id="settingsBtn" onclick="toggleSettings()">⚙️ Настройки</button>
+
+    <div id="wave-info" class="wave-info">
+        <h2>Волна <span id="wave-display">1</span></h2>
+        <p>Готовьтесь к бою!</p>
+    </div>
+
+    <div id="settings">
+        <h2>⚙️ Настройки игры</h2>
+
+        <div class="settings-group">
+            <h3>🎮 Управление игрой</h3>
+            <div class="settings-row">
+                <span>Энциклопедия стикменов</span>
+                <button class="settings-btn" onclick="openEncyclopediaFromSettings()" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2);">📖 Открыть</button>
+            </div>
+            <div class="settings-row">
+                <span>Перезапустить игру</span>
+                <button class="settings-btn danger" onclick="restartGame()">Перезапуск</button>
+            </div>
+            <div class="settings-row">
+                <span>Продолжить игру</span>
+                <button class="settings-btn" onclick="toggleSettings()">Продолжить</button>
+            </div>
+        </div></div>
+
+        <div class="settings-group">
+            <h3>🔊 Звук</h3>
+            <div class="settings-row">
+                <span>Громкость звука</span>
+                <input type="range" min="0" max="100" value="30" class="slider" id="volumeSlider" oninput="changeVolume(this.value)">
+                <span id="volumeValue">30%</span>
+            </div>
+            <div class="settings-row">
+                <span>Отключить звук</span>
+                <button class="settings-btn" id="muteBtn" onclick="toggleMute()">Звук: ВКЛ</button>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <h3>📊 Статистика оружия</h3>
+            <div class="settings-row">
+                <span>Тип оружия:</span>
+                <span id="statsWeaponType">Простой лук</span>
+            </div>
+            <div class="settings-row">
+                <span>Урон за выстрел:</span>
+                <span id="statsWeaponDamage">30</span>
+            </div>
+            <div class="settings-row">
+                <span>Уровень оружия:</span>
+                <span id="statsWeaponLevel">1</span>
+            </div>
+            <div class="settings-row">
+                <span>Максимум стрел:</span>
+                <span id="statsMaxArrows">10</span>
+            </div>
+            <div class="settings-row">
+                <span>Время перезарядки:</span>
+                <span id="statsReloadTime">3 сек</span>
+            </div>
+            <div class="settings-row">
+                <span>АОЕ урон:</span>
+                <span id="statsAOE">НЕТ</span>
+            </div>
+        </div>
+
+        <button class="close-btn" onclick="toggleSettings()">Закрыть</button>
+    </div>
+
+    <div id="encyclopedia">
+        <h2>📖 Энциклопедия стикменов</h2>
+
+        <div class="encyclopedia-tabs">
+            <button class="encyclopedia-tab active" onclick="switchEncyclopediaTab('soldiers')">👥 Солдаты</button>
+            <button class="encyclopedia-tab" onclick="switchEncyclopediaTab('enemies')">⚔️ Враги</button>
+            <button class="encyclopedia-tab" onclick="switchEncyclopediaTab('zombies')">🧟 Зомби</button>
+        </div>
+
+        <div id="soldiers-encyclopedia" class="encyclopedia-content active">
+            <h3>👥 Солдаты-стикмены</h3>
+
+            <div class="encyclopedia-item">
+                <h4>🗡️ Воин-стикмен</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">80 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">15</span></div>
+                <div class="stat-row"><span class="stat-label">Дальность:</span><span class="stat-value">400 пикселей</span></div>
+                <div class="stat-row"><span class="stat-label">Кулдаун:</span><span class="stat-value">1 секунда</span></div>
+                <p>Движется к врагам и атакует в рукопашную. Может атаковать с большого расстояния.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>🏹 Лучник-стикмен</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">50 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">25</span></div>
+                <div class="stat-row"><span class="stat-label">Дальность:</span><span class="stat-value">150 пикселей</span></div>
+                <div class="stat-row"><span class="stat-label">Кулдаун:</span><span class="stat-value">0.75 секунды</span></div>
+                <p>Стреляет стрелами в врагов. Урон можно улучшать в магазине.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>🎯 Арбалетчик-стикмен</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">60 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">38 (+50% к лучнику)</span></div>
+                <div class="stat-row"><span class="stat-label">Дальность:</span><span class="stat-value">180 пикселей</span></div>
+                <div class="stat-row"><span class="stat-label">Кулдаун:</span><span class="stat-value">0.93 секунды (+25% к лучнику)</span></div>
+                <p>Стреляет мощными стрелами. Медленнее лучника, но наносит больше урона.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>🛡️ Копейщик-стикмен</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">120 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">20</span></div>
+                <div class="stat-row"><span class="stat-label">Дальность:</span><span class="stat-value">80 пикселей</span></div>
+                <div class="stat-row"><span class="stat-label">Кулдаун:</span><span class="stat-value">0.83 секунды</span></div>
+                <p>Замедляет врагов на 2 секунды (скорость уменьшается на 50%).</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>🔮 Маг-стикмен</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">40 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">500 (АОЕ)</span></div>
+                <div class="stat-row"><span class="stat-label">Дальность:</span><span class="stat-value">200 пикселей</span></div>
+                <div class="stat-row"><span class="stat-label">Кулдаун:</span><span class="stat-value">15 секунд</span></div>
+                <p>Стреляет магическими шарами с огромным уроном по области. Очень медленная перезарядка.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>⚕️ Целитель-стикмен</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">60 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">0 (не атакует)</span></div>
+                <div class="stat-row"><span class="stat-label">Дальность:</span><span class-value">100 пикселей</span></div>
+                <div class="stat-row"><span class="stat-label">Кулдаун:</span><span class="stat-value">1.5 секунды</span></div>
+                <p>Лечит союзников на +20 HP и базу на +10 HP.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>🧟 Некромант-стикмен</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">70 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">30</span></div>
+                <div class="stat-row"><span class="stat-label">Дальность:</span><span class="stat-value">120 пикселей</span></div>
+                <div class="stat-row"><span class="stat-label">Кулдаун:</span><span class="stat-value">2 секунды</span></div>
+                <p>Призывает зомби-стикменов для атаки врагов. Может призвать разных типов зомби.</p>
+            </div>
+        </div>
+
+        <div id="enemies-encyclopedia" class="encyclopedia-content">
+            <h3>⚔️ Враги-стикмены</h3>
+
+            <div class="encyclopedia-item">
+                <h4>👹 Гоблин-стикмен</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">30 HP (+10% за волну)</span></div>
+                <div class="stat-row"><span class="stat-label">Скорость:</span><span class="stat-value">1 пиксель/кадр</span></div>
+                <div class="stat-row"><span class="stat-label">Урон базе:</span><span class="stat-value">5 HP/секунду</span></div>
+                <div class="stat-row"><span class="stat-label">Награда:</span><span class="stat-value">15 золота (+5 за волну)</span></div>
+                <p>Самый слабый враг, но быстрый и многочисленный.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>🐗 Орк-стикмен</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">60 HP (+10% за волну)</span></div>
+                <div class="stat-row"><span class="stat-label">Скорость:</span><span class="stat-value">0.8 пикселя/кадр</span></div>
+                <div class="stat-row"><span class="stat-label">Урон базе:</span><span class="stat-value">5 HP/секунду</span></div>
+                <div class="stat-row"><span class="stat-label">Награда:</span><span class="stat-value">25 золота (+5 за волну)</span></div>
+                <p>Средний враг с топором, более живучий чем гоблин.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>👺 Тролль-стикмен</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">120 HP (+10% за волну)</span></div>
+                <div class="stat-row"><span class="stat-label">Скорость:</span><span class="stat-value">0.6 пикселя/кадр</span></div>
+                <div class="stat-row"><span class="stat-label">Урон базе:</span><span class="stat-value">5 HP/секунду</span></div>
+                <div class="stat-row"><span class="stat-label">Награда:</span><span class="stat-value">40 золота (+5 за волну)</span></div>
+                <p>Медленный, но очень живучий враг.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>🐉 Дракон-стикмен</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">200 HP (+10% за волну)</span></div>
+                <div class="stat-row"><span class="stat-label">Скорость:</span><span class="stat-value">0.5 пикселя/кадр</span></div>
+                <div class="stat-row"><span class="stat-label">Урон базе:</span><span class="stat-value">5 HP/секунду</span></div>
+                <div class="stat-row"><span class="stat-label">Награда:</span><span class="stat-value">75 золота (+5 за волну)</span></div>
+                <p>Летающий враг с крыльями, очень опасный.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>🤖 Железный Голем-стикмен (БОСС)</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">400 HP (+10% за волну)</span></div>
+                <div class="stat-row"><span class="stat-label">Скорость:</span><span class="stat-value">0.3 пикселя/кадр</span></div>
+                <div class="stat-row"><span class="stat-label">Урон базе:</span><span class="stat-value">5 HP/секунду</span></div>
+                <div class="stat-row"><span class="stat-label">Награда:</span><span class="stat-value">150 золота (+5 за волну)</span></div>
+                <p>Появляется каждые 5 волн. Очень медленный, но невероятно живучий.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>🔮 Теневой Маг-стикмен (БОСС)</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">250 HP (+10% за волну)</span></div>
+                <div class="stat-row"><span class="stat-label">Скорость:</span><span class="stat-value">0.7 пикселя/кадр</span></div>
+                <div class="stat-row"><span class="stat-label">Урон базе:</span><span class="stat-value">5 HP/секунду</span></div>
+                <div class="stat-row"><span class="stat-label">Награда:</span><span class="stat-value">120 золота (+5 за волну)</span></div>
+                <p>Появляется каждые 5 волн. Может призывать миньонов.</p>
+            </div>
+        </div>
+
+        <div id="zombies-encyclopedia" class="encyclopedia-content">
+            <h3>🧟 Зомби-стикмены</h3>
+            <p>Призываются некромантом. Атакуют врагов и живут ограниченное время.</p>
+
+            <div class="encyclopedia-item">
+                <h4>🧟‍♂️ Обычный зомби (60% шанс)</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">50 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">30</span></div>
+                <div class="stat-row"><span class="stat-label">Скорость:</span><span class="stat-value">0.4 пикселя/кадр</span></div>
+                <div class="stat-row"><span class="stat-label">Время жизни:</span><span class="stat-value">30 секунд</span></div>
+                <p>Базовый зомби, самый частый призыв.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>⚔️ Зомби-рыцарь (20% шанс)</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">100 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">50</span></div>
+                <div class="stat-row"><span class="stat-label">Скорость:</span><span class="stat-value">0.35 пикселя/кадр</span></div>
+                <div class="stat-row"><span class="stat-label">Время жизни:</span><span class="stat-value">30 секунд</span></div>
+                <p>Более сильный зомби с улучшенными характеристиками.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>🛡️ Зомби-паладин (15% шанс)</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">125 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">60</span></div>
+                <div class="stat-row"><span class="stat-label">Скорость:</span><span class="stat-value">0.3 пикселя/кадр</span></div>
+                <div class="stat-row"><span class="stat-label">Время жизни:</span><span class="stat-value">30 секунд</span></div>
+                <p>Очень живучий зомби с высоким уроном.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>👑 Зомби-генерал (4% шанс)</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">200 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">50</span></div>
+                <div class="stat-row"><span class="stat-label">Скорость:</span><span class="stat-value">0.25 пикселя/кадр</span></div>
+                <div class="stat-row"><span class="stat-label">Время жизни:</span><span class="stat-value">30 секунд</span></div>
+                <p>Редкий зомби, который может призывать других зомби.</p>
+            </div>
+
+            <div class="encyclopedia-item">
+                <h4>🗿 Зомби-гигант (1% шанс)</h4>
+                <div class="stat-row"><span class="stat-label">Здоровье:</span><span class="stat-value">500 HP</span></div>
+                <div class="stat-row"><span class="stat-label">Урон:</span><span class="stat-value">100 (АОЕ)</span></div>
+                <div class="stat-row"><span class="stat-label">Скорость:</span><span class="stat-value">0.15 пикселя/кадр</span></div>
+                <div class="stat-row"><span class="stat-label">Время жизни:</span><span class="stat-value">30 секунд</span></div>
+                <p>Самый редкий и мощный зомби. Наносит урон по области 40 пикселей.</p>
+            </div>
+        </div>
+
+        <button class="close-btn" onclick="toggleEncyclopedia()">Закрыть</button>
+    </div>
+
+    <div id="shop">
+        <div class="shop-tabs">
+            <button class="shop-tab active" onclick="switchTab('soldiers')">👥 Стикмены</button>
+            <button class="shop-tab" onclick="switchTab('weapons')">🏹 Оружие</button>
+            <button class="shop-tab" onclick="switchTab('upgrades')">⬆️ Улучшения</button>
+            <button class="shop-tab" onclick="switchTab('items')">🎒 Предметы</button>
+        </div>
+
+        <div id="soldiers-content" class="shop-content active">
+            <h3>👥 Стикмены-защитники</h3>
+            <div class="shop-item">
+                <h4>Воин-стикмен 🗡️</h4>
+                <p>Урон: 15 | Здоровье: 80</p>
+                <p>Стоимость: <span id="warrior-cost">150</span> золота</p>
+                <button onclick="buySoldier('warrior')">Купить</button>
+            </div>
+            <div class="shop-item">
+                <h4>Лучник-стикмен 🏹</h4>
+                <p>Урон: 25 | Дальний бой</p>
+                <p>Стоимость: <span id="archer-cost">200</span> золота</p>
+                <button onclick="buySoldier('archer')">Купить</button>
+            </div>
+            <div class="shop-item">
+                <h4>Арбалетчик-стикмен 🎯</h4>
+                <p>Урон: 38 | Мощный выстрел</p>
+                <p>Стоимость: <span id="crossbowman-cost">350</span> золота</p>
+                <button onclick="buySoldier('crossbowman')">Купить</button>
+            </div>
+            <div class="shop-item">
+                <h4>Копейщик-стикмен 🗡️</h4>
+                <p>Урон: 20 | Замедляет врагов</p>
+                <p>Стоимость: <span id="pikeman-cost">300</span> золота</p>
+                <button onclick="buySoldier('pikeman')">Купить</button>
+            </div>
+            <div class="shop-item special-item">
+                <h4>Маг-стикмен 🔮</h4>
+                <p>Урон: 500 АОЕ | Медленная перезарядка</p>
+                <p>Стоимость: <span id="mage-cost">1200</span> золота</p>
+                <button onclick="buySoldier('mage')">Купить</button>
+            </div>
+            <div class="shop-item special-item">
+                <h4>Целитель-стикмен ⚕️</h4>
+                <p>Лечит союзников</p>
+                <p>Стоимость: <span id="healer-cost">500</span> золота</p>
+                <button onclick="buySoldier('healer')">Купить</button>
+            </div>
+            <div class="shop-item legendary-item">
+                <h4>Некромант-стикмен 🧟</h4>
+                <p>Призывает зомби-стикменов</p>
+                <p>Стоимость: <span id="necromancer-cost">800</span> золота</p>
+                <button onclick="buySoldier('necromancer')">Купить</button>
+            </div>
+        </div>
+
+        <div id="weapons-content" class="shop-content">
+            <h3>🏹 Улучшения оружия</h3>
+            <div class="shop-item special-item">
+                <h4>Арбалет ⚔️</h4>
+                <p>Урон +50% | Патроны: 15 | Перезарядка: 4 сек</p>
+                <p>Стоимость: 500 золота</p>
+                <button onclick="buyWeapon('crossbow')" id="crossbow-weapon-btn">Купить</button>
+            </div>
+            <div class="shop-item special-item">
+                <h4>Магический лук 🔮</h4>
+                <p>АОЕ урон | Патроны: 20 | Перезарядка: 3 сек</p>
+                <p>Стоимость: 1500 золота</p>
+                <button onclick="buyWeapon('magic')" id="magic-weapon-btn">Купить</button>
+            </div>
+        </div>
+
+        <div id="upgrades-content" class="shop-content">
+            <h3>⬆️ Улучшения</h3>
+            <div class="shop-item">
+                <h4>Урон лучников <span class="upgrade-level" id="archer-dmg-lvl">Ур. 0</span></h4>
+                <p>Увеличивает урон лучников на 50%</p>
+                <p>Стоимость: <span id="archer-dmg-cost">200</span> золота</p>
+                <button onclick="buyUpgrade('archerDamage')">Улучшить</button>
+            </div>
+            <div class="shop-item">
+                <h4>Скорость стрельбы <span class="upgrade-level" id="fire-rate-lvl">Ур. 0</span></h4>
+                <p>Увеличивает скорость стрельбы на 25%</p>
+                <p>Стоимость: <span id="fire-rate-cost">300</span> золота</p>
+                <button onclick="buyUpgrade('fireRate')">Улучшить</button>
+            </div>
+            <div class="shop-item">
+                <h4>Здоровье базы <span class="upgrade-level" id="base-hp-lvl">Ур. 0</span></h4>
+                <p>Увеличивает здоровье базы на 50</p>
+                <p>Стоимость: <span id="base-hp-cost">250</span> золота</p>
+                <button onclick="buyUpgrade('baseHP')">Улучшить</button>
+            </div>
+            <div class="shop-item special-item">
+                <h4>Прокачка базы <span class="upgrade-level" id="base-level-display">Ур. 0</span></h4>
+                <p>Увеличивает здоровье базы на 100</p>
+                <p>Стоимость: <span id="base-level-cost">500</span> золота</p>
+                <button onclick="buyUpgrade('baseLevel')">Прокачать</button>
+            </div>
+        </div>
+
+        <div id="items-content" class="shop-content">
+            <h3>🎒 Предметы</h3>
+            <div class="shop-item">
+                <h4>Стрелы 🏹</h4>
+                <p>Пополнить боеприпасы (+10 стрел)</p>
+                <p>Стоимость: 50 золота</p>
+                <button onclick="buyItem('arrows')">Купить</button>
+            </div>
+            <div class="shop-item">
+                <h4>Лечебное зелье 🧪</h4>
+                <p>Восстанавливает 50 HP базы</p>
+                <p>Стоимость: 150 золота</p>
+                <button onclick="buyItem('heal')">Купить</button>
+            </div>
+            <div class="shop-item">
+                <h4>Бомба 💣</h4>
+                <p>Уничтожает всех врагов на экране</p>
+                <p>Стоимость: 400 золота</p>
+                <button onclick="buyItem('bomb')">Купить</button>
+            </div>
+        </div>
+
+        <button class="close-btn" onclick="toggleShop()">Закрыть</button>
+    </div>
+
+    <!-- Звуковые эффекты -->
+    <!-- Фоновая музыка -->
+    <audio id="backgroundMusic" preload="auto" loop>
+        <source src="https://www.soundjay.com/misc/sounds/fail-buzzer-02.wav" type="audio/wav">
+    </audio>
+
+    <!-- Звуки выстрелов -->
+    <audio id="shootSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSs" type="audio/wav">
+    </audio>
+    <audio id="hitSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSs" type="audio/wav">
+    </audio>
+
+    <!-- Новые звуковые эффекты -->
+    <audio id="enemyDeathSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSs" type="audio/wav">
+    </audio>
+    <audio id="explosionSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSs" type="audio/wav">
+    </audio>
+    <audio id="soldierBuySound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSs" type="audio/wav">
+    </audio>
+    <audio id="goldSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSs" type="audio/wav">
+    </audio>
+    <audio id="waveStartSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSs" type="audio/wav">
+    </audio>
+    <audio id="healSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSs" type="audio/wav">
+    </audio>
+    <audio id="magicSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmseED+Z2O/NeSs" type="audio/wav">
+    </audio>
+
+    <script src="script.js"></script>
+</body>
+</html>
